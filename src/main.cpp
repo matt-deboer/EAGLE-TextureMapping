@@ -1,6 +1,6 @@
 #include "settings.h"
-#include "Eagle_Utils.h"
-#include "getalignresults.h"
+#include "eagle/utils.h"
+#include "eagle/align.h"
 
 int main()
 {

@@ -11,12 +11,12 @@
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
-
-#include <pcl/io/ply_io.h>
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <pcl/PolygonMesh.h>
-#include <pcl/conversions.h>
+#include <open3d/Open3D.h>
+// #include <pcl/io/ply_io.h>
+// #include <pcl/point_types.h>
+// #include <pcl/point_cloud.h>
+// #include <pcl/PolygonMesh.h>
+// #include <pcl/conversions.h>
 
 #include <acc/bvh_tree.h>
 
@@ -30,8 +30,11 @@ public:
     std::ofstream log;
 
     std::vector<cv::Mat1f> cameraPoses; // cameraPos matrix's array
-    pcl::PolygonMesh mesh;
-    pcl::PointCloud<pcl::PointXYZRGB> cloud_rgb;
+    // pcl::PolygonMesh mesh;
+    open3d::geometry::TriangleMesh mesh;
+
+    // pcl::PointCloud<pcl::PointXYZRGB> cloud_rgb;
+    open3d::geometry::PointCloud cloud_rgb;
     size_t point_num, mesh_num;
     std::vector<cv::Vec3f> vertex_normal;
 

@@ -1,4 +1,4 @@
-#include "getalignresults.h"
+#include "eagle/getalignresults.h"
 
 /*----------------------------------------------
  *  Log Settings
@@ -65,15 +65,12 @@ getAlignResults::getAlignResults(Settings &_settings)
         " | From " + std::to_string(settings.scaleInitW) + "x" + std::to_string(settings.scaleInitH) +
         " to " + std::to_string(settings.originImgW) + "x" + std::to_string(settings.originImgH) + " ]");
 
-    //pcl::PolygonMesh mesh;
-    pcl::io::loadPLYFile(settings.keyFramesPath + "/" + settings.plyFile, mesh);
-    point_num = mesh.cloud.width;
-    mesh_num = mesh.polygons.size();
+    open3d::io::ReadTriangleMesh(settings.keyFramesPath + "/" + settings.plyFile, mesh);
+    point_num = mesh.vertices_.size();
+    mesh_num = mesh.triangles_.size();
     LOG("[ PLY Model: " + std::to_string(point_num) + " vertexs | " + std::to_string(mesh_num) + " faces ]");
-    // create a RGB point cloud
-    cloud_rgb = pcl::PointCloud<pcl::PointXYZRGB>();
     // convert to PointCloud
-    pcl::fromPCLPointCloud2(mesh.cloud, cloud_rgb);
+    cloud.points_ = mesh.vertices_;
     calcNormals();
 
     readDepthImgs();
@@ -401,8 +398,8 @@ void getAlignResults::calcNormals()
     for( size_t i = 0; i < mesh_num; i++ ) {
         std::vector<cv::Vec3f> v(3);
         for( size_t v_i = 0; v_i < 3; v_i++ ) {
-            size_t p_i = mesh.polygons[i].vertices[v_i];
-            cv::Vec3f v_(cloud_rgb.points[p_i].x, cloud_rgb.points[p_i].y, cloud_rgb.points[p_i].z);
+            size_t p_i = mesh.triangles_[i][v_i];
+            cv::Vec3f v_(cloud_rgb.points_[p_i].x(), cloud_rgb.points_[p_i].y(), cloud_rgb.points_[p_i].z());
             v[v_i] = v_; // store the current mesh's points coords
         }
         cv::Vec3f e1 = v[1] - v[0];
@@ -417,7 +414,7 @@ void getAlignResults::calcNormals()
         t[0] = acos(cos_t0); t[1] = acos(cos_t1); t[2] = acos(cos_t2);
 
         for( size_t v_i = 0; v_i < 3; v_i++ ) {
-            size_t p_i = mesh.polygons[i].vertices[v_i];
+            size_t p_i = mesh.triangles_[i][v_i];
             vertex_normal[p_i] += fn * t[v_i];
             vertex_angle[p_i] += static_cast<float>(t[v_i]);
         }
@@ -437,11 +434,11 @@ void getAlignResults::calcValidMesh()
     std::vector<unsigned int> faces(mesh_num * 3);
     for( size_t i = 0; i < mesh_num; i++ ) {
         for( size_t v_i = 0; v_i < 3; v_i++ )
-            faces[i * 3 + v_i] = mesh.polygons[i].vertices[v_i];
+            faces[i * 3 + v_i] = mesh.triangles_[i][v_i];
     }
     std::vector<math::Vec3f> vertices(point_num);
     for(size_t i = 0; i < point_num; i++) {
-        math::Vec3f v( cloud_rgb.points[i].x, cloud_rgb.points[i].y, cloud_rgb.points[i].z );
+        math::Vec3f v( cloud_rgb.points_[i].x(), cloud_rgb.points_[i].y(), cloud_rgb.points_[i].z());
         vertices[i] = v;
     }
     BVHTree bvhtree(faces, vertices);
@@ -513,14 +510,14 @@ void getAlignResults::calcImgValidMesh(size_t img_i, BVHTree &bvhtree)
                 depth_max = depth;
 
             math::Vec3f const & w = hit.bcoords; // cv::Vec3f( w(0), w(1), w(2) );
-            size_t v1_id = mesh.polygons[info->mesh_id].vertices[0];
-            size_t v2_id = mesh.polygons[info->mesh_id].vertices[1];
-            size_t v3_id = mesh.polygons[info->mesh_id].vertices[2];
+            size_t v1_id = mesh.triangles_[info->mesh_id][0];
+            size_t v2_id = mesh.triangles_[info->mesh_id][1];
+            size_t v3_id = mesh.triangles_[info->mesh_id][2];
 
             // calc world position
-//            float _x = cloud_rgb.points[v1_id].x * w(0) + cloud_rgb.points[v2_id].x * w(1) + cloud_rgb.points[v3_id].x * w(2);
-//            float _y = cloud_rgb.points[v1_id].y * w(0) + cloud_rgb.points[v2_id].y * w(1) + cloud_rgb.points[v3_id].y * w(2);
-//            float _z = cloud_rgb.points[v1_id].z * w(0) + cloud_rgb.points[v2_id].z * w(1) + cloud_rgb.points[v3_id].z * w(2);
+//            float _x = cloud_rgb.points_[v1_id].x * w(0) + cloud_rgb.points_[v2_id].x * w(1) + cloud_rgb.points_[v3_id].x * w(2);
+//            float _y = cloud_rgb.points_[v1_id].y * w(0) + cloud_rgb.points_[v2_id].y * w(1) + cloud_rgb.points_[v3_id].y * w(2);
+//            float _z = cloud_rgb.points_[v1_id].z * w(0) + cloud_rgb.points_[v2_id].z * w(1) + cloud_rgb.points_[v3_id].z * w(2);
             float d2 = depth * depth; // (cam_world_p(0)-_x)*(cam_world_p(0)-_x) + (cam_world_p(1)-_y)*(cam_world_p(1)-_y) + (cam_world_p(2)-_z)*(cam_world_p(2)-_z);
             if ( d2 < d2_min )
                 d2_min = d2;
@@ -1225,7 +1222,7 @@ void getAlignResults::generateTexturedOBJ(std::string path, std::string filename
             // valid mesh, then find its 3 points' uv-coord's index
             struct face_info info;
             for(size_t p_i = 0; p_i < 3; p_i++) {
-                size_t v_index = mesh.polygons[mesh_i].vertices[p_i];
+                size_t v_index = mesh.triangles_[mesh_i][p_i];
                 // to get its uv-coord index
                 size_t uv_coord_index = 0;
                 // if its uv-coord has been put into the uv_coords
@@ -1259,8 +1256,8 @@ bool getAlignResults::checkMeshMapImg(size_t mesh_i, size_t img_i, std::vector<c
     v_uv.clear();
     bool flag = true;
     for(size_t p_i = 0; p_i < 3; p_i++) {
-        size_t v_index = mesh.polygons[mesh_i].vertices[p_i];
-        cv::Mat X_w = (cv::Mat_<float>(4, 1) << cloud_rgb.points[v_index].x, cloud_rgb.points[v_index].y, cloud_rgb.points[v_index].z, 1);
+        size_t v_index = mesh.triangles_[mesh_i][p_i];
+        cv::Mat X_w = (cv::Mat_<float>(4, 1) << cloud_rgb.points_[v_index].x(), cloud_rgb.points_[v_index].y(), cloud_rgb.points_[v_index].z(), 1);
         cv::Mat X_img = worldToImg(X_w, img_i);
         int _x = static_cast<int>( round(static_cast<double>(X_img.at<float>(0))) );
         int _y = static_cast<int>( round(static_cast<double>(X_img.at<float>(1))) );
@@ -1278,7 +1275,7 @@ bool getAlignResults::checkMeshMapImg(size_t mesh_i, size_t img_i, std::vector<c
 }
 
 void getAlignResults::saveOBJwithMTL(std::string path, std::string filename, std::string resultImgNamePattern,
-                                     pcl::PointCloud<pcl::PointXYZRGB> cloud,
+                                     open3d::geometry::PointCloud cloud,
                                      std::vector<cv::Point2f> uv_coords,
                                      std::map<size_t, std::vector<struct face_info>> mesh_info)
 {
