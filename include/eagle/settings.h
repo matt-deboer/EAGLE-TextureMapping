@@ -1,10 +1,8 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-#include "eagle/utils.h"
-
 #include <opencv2/opencv.hpp>
-#include <opencv2/highgui/highgui.hpp>
+// #include <opencv2/highgui/highgui.hpp>
 
 class Settings
 {

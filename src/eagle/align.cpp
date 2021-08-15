@@ -1,4 +1,5 @@
 #include "eagle/align.h"
+#include <filesystem>
 
 /*----------------------------------------------
  *  Log Settings
@@ -25,7 +26,7 @@
 /*----------------------------------------------
  *  Main
  * ---------------------------------------------*/
-getAlignResults::getAlignResults(Settings &_settings)
+TextureMapper::TextureMapper(Settings &_settings)
 {
     settings = _settings;
     cv::glob(settings.keyFramesPath + "/" + settings.kfRGBMatch, sourcesOrigin, false);
@@ -41,19 +42,19 @@ getAlignResults::getAlignResults(Settings &_settings)
     }
     // make the dir to store all files
     processPath = settings.keyFramesPath + "/results_Bi17" + settings.resultsPathSurfix;
-    EAGLE::checkPath(processPath);
+    std::filesystem::create_directories(processPath);
     // make the dir to store processing images
     sourcesPath = processPath + "/sources";
-    EAGLE::checkPath(sourcesPath);
+    std::filesystem::create_directories(sourcesPath);
     targetsPath = processPath + "/targets";
-    EAGLE::checkPath(targetsPath);
+    std::filesystem::create_directories(targetsPath);
     texturesPath = processPath + "/textures";
-    EAGLE::checkPath(texturesPath);
+    std::filesystem::create_directories(texturesPath);
     weightsPath = processPath + "/weights";
-    EAGLE::checkPath(weightsPath);
+    std::filesystem::create_directories(weightsPath);
     // make the dir to store iteration results
     resultsPath = processPath + "/results";
-    EAGLE::checkPath(resultsPath);
+    std::filesystem::create_directories(resultsPath);
     log.open( resultsPath + "/LOG.log" );
     LOG("[ From Path: " + settings.keyFramesPath + " ]");
     LOG("[ To Path: ./results_Bi17" + settings.resultsPathSurfix + " ]" );
@@ -77,7 +78,7 @@ getAlignResults::getAlignResults(Settings &_settings)
 
     // read the camera's world positions of keyframes
     LOG("[ Read Camera Matrixs ] ");
-    if ( EAGLE::isFileExist(settings.keyFramesPath + "/" + settings.kfCameraTxtFile) )
+    if ( std::filesystem::exists(settings.keyFramesPath + "/" + settings.kfCameraTxtFile) )
         readCameraTraj(settings.keyFramesPath + "/" + settings.kfCameraTxtFile);
     else
         readCameraTraj();
@@ -107,7 +108,7 @@ getAlignResults::getAlignResults(Settings &_settings)
     LOG("[ Running from " + std::string(time_start_str) + " to " + std::string(time_end_str) + " ]");
     LOG("[ Finish in " + std::to_string(all_seconds) + " s ]");
 }
-getAlignResults::~getAlignResults()
+TextureMapper::~TextureMapper()
 {
     log.close();
 
@@ -125,7 +126,7 @@ getAlignResults::~getAlignResults()
 /*----------------------------------------------
  *  LOG
  * ---------------------------------------------*/
-void getAlignResults::LOG(std::string t, bool nl)
+void TextureMapper::LOG(std::string t, bool nl)
 {
     std::cout << t;
     log << t;
@@ -141,14 +142,14 @@ void getAlignResults::LOG(std::string t, bool nl)
 /*----------------------------------------------
  *  Image File
  * ---------------------------------------------*/
-std::string getAlignResults::getImgFilename(size_t img_i)
+std::string TextureMapper::getImgFilename(size_t img_i)
 {
     char buf[18];
     sprintf(buf, (settings.kfRGBNamePattern).c_str(), img_i);
     std::string name = buf;
     return name;
 }
-std::string getAlignResults::getImgFilename(size_t img_i, std::string pre, std::string ext)
+std::string TextureMapper::getImgFilename(size_t img_i, std::string pre, std::string ext)
 {
     char filename[18] = "\n";
     sprintf(filename, (pre + "%03d" + ext).c_str(), img_i);
@@ -159,17 +160,17 @@ std::string getAlignResults::getImgFilename(size_t img_i, std::string pre, std::
 /*----------------------------------------------
  *  Depth File
  * ---------------------------------------------*/
-void getAlignResults::readDepthImgs()
+void TextureMapper::readDepthImgs()
 {
     char tmp[24];
     for ( size_t i : kfIndexs ) {
         sprintf(tmp, (settings.kfDNamePattern).c_str(), i);
         std::string file = settings.keyFramesPath + "/" + std::string(tmp);
-        if (EAGLE::isFileExist(file))
+        if (std::filesystem::exists(file))
             depthImgs[i] = cv::imread(file, cv::IMREAD_UNCHANGED);
     }
 }
-float getAlignResults::getDepthRaw(size_t img_i, int x, int y)
+float TextureMapper::getDepthRaw(size_t img_i, int x, int y)
 {
     if ( depthImgs.empty() == true ) {
         return -1.0f;
@@ -198,7 +199,7 @@ float getAlignResults::getDepthRaw(size_t img_i, int x, int y)
     //std::cout << "[(" << x << "," << y << ") " << v << "]" << std::flush;
     return v;
 }
-float getAlignResults::getDepth(size_t img_i, int x, int y)
+float TextureMapper::getDepth(size_t img_i, int x, int y)
 {
     if ( depthImgs.empty() == true ) {
         return -1.0f;
@@ -212,7 +213,7 @@ float getAlignResults::getDepth(size_t img_i, int x, int y)
  *  Camera
  * ---------------------------------------------*/
 // the cameraPoses are matrixs that project a point from world coord to camera coord
-void getAlignResults::readCameraTraj(std::string camTraj_file)
+void TextureMapper::readCameraTraj(std::string camTraj_file)
 {
     std::ifstream  matifs(camTraj_file.c_str());
     int id;
@@ -234,7 +235,7 @@ void getAlignResults::readCameraTraj(std::string camTraj_file)
     /*for ( size_t i = 0; i < cameraPoses.size(); i++)
         std::cout << cameraPoses[i] << std::endl; */
 }
-void getAlignResults::readCameraTraj()
+void TextureMapper::readCameraTraj()
 {
     char buf[18];
     std::ifstream matifs;
@@ -262,20 +263,20 @@ void getAlignResults::readCameraTraj()
 }
 
 // project the point from the camera coord to the world coordinate system
-cv::Mat getAlignResults::cameraToWorld(cv::Mat X_c, size_t id)
+cv::Mat TextureMapper::cameraToWorld(cv::Mat X_c, size_t id)
 {
     cv::Mat R = cameraPoses[id]; // from world to camera
     return R.inv() * X_c;
 }
 // project the point from the world to the (id)th camera's coordinate system
-cv::Mat getAlignResults::worldToCamera(cv::Mat X_w, size_t id)
+cv::Mat TextureMapper::worldToCamera(cv::Mat X_w, size_t id)
 {
     cv::Mat R = cameraPoses[id]; // from world to camera
     return R * X_w;
 }
 
 // project a pixel to the camera coord
-cv::Mat getAlignResults::imgToCamera(int x, int y, float z)
+cv::Mat TextureMapper::imgToCamera(int x, int y, float z)
 {
     float cx = settings.cameraCx / static_cast<float>(scaleF);
     float cy = settings.cameraCy / static_cast<float>(scaleF);
@@ -287,7 +288,7 @@ cv::Mat getAlignResults::imgToCamera(int x, int y, float z)
     float y_c = (y * 1.0f - cy) * z_c / fy;
     return (cv::Mat_<float>(4, 1) << x_c, y_c, z_c, 1);
 }
-cv::Mat getAlignResults::cameraToImg(cv::Mat X_c)
+cv::Mat TextureMapper::cameraToImg(cv::Mat X_c)
 {
     float cx = settings.cameraCx / static_cast<float>(scaleF);
     float cy = settings.cameraCy / static_cast<float>(scaleF);
@@ -301,7 +302,7 @@ cv::Mat getAlignResults::cameraToImg(cv::Mat X_c)
 }
 
 // project a pixel to the world coord system
-cv::Mat getAlignResults::imgToWorld(int x, int y, float z, size_t id, int is_point)
+cv::Mat TextureMapper::imgToWorld(int x, int y, float z, size_t id, int is_point)
 {
     cv::Mat X_c = imgToCamera(x, y, z);
     X_c.at<float>(3) = is_point * 1.0f;
@@ -310,7 +311,7 @@ cv::Mat getAlignResults::imgToWorld(int x, int y, float z, size_t id, int is_poi
 // project the point to the (id)th image's plane (on origin-resolution)
 //   X_w is the point's world position [x_w, y_w, z_w, 1]
 //   return 3*1 matrix [x_img, y_img, z_c]
-cv::Mat getAlignResults::worldToImg(cv::Mat X_w, size_t id)
+cv::Mat TextureMapper::worldToImg(cv::Mat X_w, size_t id)
 {
     cv::Mat X_c = worldToCamera(X_w, id);
     return cameraToImg(X_c);
@@ -320,7 +321,7 @@ cv::Mat getAlignResults::worldToImg(cv::Mat X_w, size_t id)
  *  Valid Check
  * ---------------------------------------------*/
 // chech if the point is valid under current resolution
-bool getAlignResults::pointValid(int x, int y)
+bool TextureMapper::pointValid(int x, int y)
 {
     if(x < 0 || x >= settings.imgW)
         return false;
@@ -328,18 +329,18 @@ bool getAlignResults::pointValid(int x, int y)
         return false;
     return true;
 }
-bool getAlignResults::pointValid(cv::Point2i p_img)
+bool TextureMapper::pointValid(cv::Point2i p_img)
 {
     return pointValid(p_img.x, p_img.y);
 }
-bool getAlignResults::pointValid(cv::Point2f p_img)
+bool TextureMapper::pointValid(cv::Point2f p_img)
 {
     return pointValid(static_cast<int>(std::round(p_img.x)), static_cast<int>(std::round(p_img.y)));
 }
 
 // chech if the point can project to the position(x,y) on the (img_id)th image
 //  point_z is the point's z on the (img_id)th camera
-bool getAlignResults::pointProjectionValid(float point_z, size_t img_id, int x, int y)
+bool TextureMapper::pointProjectionValid(float point_z, size_t img_id, int x, int y)
 {
     // check if the point is valid
     if ( !pointValid(x, y) )
@@ -363,7 +364,7 @@ bool getAlignResults::pointProjectionValid(float point_z, size_t img_id, int x, 
 }
 
 // check if the img_id's (x, y) is on the boundary of the object
-bool getAlignResults::pointOnBoundary(size_t img_id, int x, int y)
+bool TextureMapper::pointOnBoundary(size_t img_id, int x, int y)
 {
     // for a small patch which (x,y) is its center,
     //   if some weight in it is 0, then assume the point is on boundary
@@ -387,7 +388,7 @@ bool getAlignResults::pointOnBoundary(size_t img_id, int x, int y)
 /*----------------------------------------------
  *  Pre-Process
  * ---------------------------------------------*/
-void getAlignResults::calcNormals()
+void TextureMapper::calcNormals()
 {
     LOG("[ Calculating Normals of each Vertex ]");
     //std::vector<cv::Vec3f> vertex_normal(point_num); // vertex id => cv::Vec3f
@@ -426,7 +427,7 @@ void getAlignResults::calcNormals()
 }
 
 // calculate valid mesh for each pixel on every image
-void getAlignResults::calcValidMesh()
+void TextureMapper::calcValidMesh()
 {
     LOG("[ Calculating Depth, Distance and Weight ]");
 
@@ -459,7 +460,7 @@ void getAlignResults::calcValidMesh()
     }
 }
 // using the ray intersection method to get the pixel's depth
-void getAlignResults::calcImgValidMesh(size_t img_i, BVHTree &bvhtree)
+void TextureMapper::calcImgValidMesh(size_t img_i, BVHTree &bvhtree)
 {
     // calc the camera's position (in world coord)
     cv::Mat cam_c = (cv::Mat_<float>(4, 1) << 0, 0, 0, 1);
@@ -562,7 +563,7 @@ void getAlignResults::calcImgValidMesh(size_t img_i, BVHTree &bvhtree)
 }
 
 // calculate valid patch to accelerate the patchmatch
-void getAlignResults::calcValidPatch()
+void TextureMapper::calcValidPatch()
 {
     LOG("[ Select valid patchs ]");
     LOG( " Valid Patch << ", false );
@@ -574,7 +575,7 @@ void getAlignResults::calcValidPatch()
     }
     LOG( "<< Done" );
 }
-void getAlignResults::calcImgValidPatch(size_t img_i)
+void TextureMapper::calcImgValidPatch(size_t img_i)
 {
     size_t total = static_cast<size_t>(settings.imgW * settings.imgH);
 #pragma omp parallel for
@@ -587,7 +588,7 @@ void getAlignResults::calcImgValidPatch(size_t img_i)
         img_valid_patch[img_i].at<int>(y, x) = result;
     }
 }
-int getAlignResults::isPatchValid(size_t img_i, int x, int y)
+int TextureMapper::isPatchValid(size_t img_i, int x, int y)
 {
     // if any pixel is valid, then it's valid
     for ( int dx = 0; dx < settings.patchWidth; dx++ ) {
@@ -600,7 +601,7 @@ int getAlignResults::isPatchValid(size_t img_i, int x, int y)
 }
 
 // for every triangle mesh, do projection from i to j
-void getAlignResults::calcRemapping()
+void TextureMapper::calcRemapping()
 {
     //std::map<size_t, std::map<size_t, cv::Mat>> mappings;
     mappings.clear();
@@ -621,7 +622,7 @@ void getAlignResults::calcRemapping()
     showRemapping();
 }
 // for each pixel in img_i, remapping it to img_j only when the mesh is visible both in i and j
-void getAlignResults::calcImgRemapping(size_t img_i, size_t img_j)
+void TextureMapper::calcImgRemapping(size_t img_i, size_t img_j)
 {
     size_t total = static_cast<size_t>(settings.imgW * settings.imgH);
 #pragma omp parallel for
@@ -653,7 +654,7 @@ void getAlignResults::calcImgRemapping(size_t img_i, size_t img_j)
         mappings[img_i][img_j].at<cv::Vec3i>(y, x)(2) = 1;
     }
 }
-void getAlignResults::showRemapping()
+void TextureMapper::showRemapping()
 {
     size_t total = static_cast<size_t>(settings.imgW * settings.imgH);
     for( size_t img_i : kfIndexs) {
@@ -682,7 +683,7 @@ void getAlignResults::showRemapping()
 /*----------------------------------------------
  *  Do Iterations
  * ---------------------------------------------*/
-void getAlignResults::doIterations()
+void TextureMapper::doIterations()
 {
     size_t scale = 0;
     //scale = settings.scaleTimes-1;
@@ -713,7 +714,7 @@ void getAlignResults::doIterations()
         // generate source imgs with new resolution // [REQUIRE] ImageMagick
         sourcesImgs.clear();
         for( size_t i : kfIndexs ) {
-            std::string filename = EAGLE::getFilename(sourcesOrigin[i]);
+            std::string filename = std::filesystem::path(sourcesOrigin[i]).filename();
             sourcesFiles[i] = sourcesPath + "/" + filename;
             system( ("convert " + sourcesOrigin[i] + " -resize " + newResolution + "! " + sourcesFiles[i]).c_str() );
 
@@ -737,7 +738,7 @@ void getAlignResults::doIterations()
         // init Ti and Mi or upsample
         if ( init_T_M == true ) {
             for( size_t i : kfIndexs ) {
-                std::string filename = EAGLE::getFilename(sourcesFiles[i]);
+                std::string filename = std::filesystem::path(sourcesFiles[i]).filesystem();
                 targetsFiles[i] = targetsPath + "/" + filename;
                 system( ("cp " + sourcesFiles[i] + " " + targetsFiles[i]).c_str() );
                 texturesFiles[i] = texturesPath + "/" + filename;
@@ -807,13 +808,13 @@ void getAlignResults::doIterations()
     LOG("[ Generate OBJ file Success ]");
 }
 
-void getAlignResults::doOBJGenerationOnly()
+void TextureMapper::doOBJGenerationOnly()
 {
     scaleF = 1;
 
     sourcesImgs.clear();
     for( size_t i : kfIndexs ) {
-        std::string filename = EAGLE::getFilename(sourcesOrigin[i]);
+        std::string filename = std::filesystem::path(sourcesOrigin[i]).filename();
         sourcesFiles[i] = sourcesPath + "/" + filename;
         system( ("cp " + sourcesOrigin[i] + " " + sourcesFiles[i]).c_str() );
         sourcesImgs[i] = cv::imread(sourcesFiles[i]);
@@ -832,7 +833,7 @@ void getAlignResults::doOBJGenerationOnly()
     }
     generateTexturedOBJ(resultsPath, "S", "S_%03d");
 
-    if (EAGLE::isFileExist(resultsPath + "/M_000_10."+settings.rgbNameExt) )
+    if (std::filesystem::exists(resultsPath + "/M_000_10."+settings.rgbNameExt) )
         generateTexturedOBJ(resultsPath, "M", "M_%03d_"+std::to_string(settings.scaleTimes));
 
     LOG("[ Generate OBJ file Success ]");
@@ -842,7 +843,7 @@ void getAlignResults::doOBJGenerationOnly()
 /*----------------------------------------------
  *  PatchMatch
  * ---------------------------------------------*/
-void getAlignResults::patchmatch(size_t img_id, cv::Mat3b a, cv::Mat3b b, cv::Mat3i &ann)
+void TextureMapper::patchmatch(size_t img_id, cv::Mat3b a, cv::Mat3b b, cv::Mat3i &ann)
 {
     int total = settings.imgH * settings.imgW;
 #pragma omp parallel for
@@ -856,7 +857,7 @@ void getAlignResults::patchmatch(size_t img_id, cv::Mat3b a, cv::Mat3b b, cv::Ma
     for ( int i = 0; i < 5; i++ )
         patchmatch_iter(img_id, a, b, ann, i % 2);
 }
-void getAlignResults::patchmatch_iter(size_t img_id, cv::Mat3b a, cv::Mat3b b, cv::Mat3i &ann, int dir)
+void TextureMapper::patchmatch_iter(size_t img_id, cv::Mat3b a, cv::Mat3b b, cv::Mat3i &ann, int dir)
 {
     int aew = settings.imgW - settings.patchWidth + 1, aeh = settings.imgH - settings.patchWidth + 1;
     int bew = aew, beh = aeh;
@@ -923,7 +924,7 @@ void getAlignResults::patchmatch_iter(size_t img_id, cv::Mat3b a, cv::Mat3b b, c
         ann.at<cv::Vec3i>(ay, ax)(2) = dbest;
     }
 }
-void getAlignResults::improve_guess(cv::Mat3b a, cv::Mat3b b, int ax, int ay, int &xbest, int &ybest, int &dbest, int bx, int by)
+void TextureMapper::improve_guess(cv::Mat3b a, cv::Mat3b b, int ax, int ay, int &xbest, int &ybest, int &dbest, int bx, int by)
 {
     int d = dist(a, b, ax, ay, bx, by, dbest);
     if (d < dbest) {
@@ -932,7 +933,7 @@ void getAlignResults::improve_guess(cv::Mat3b a, cv::Mat3b b, int ax, int ay, in
         ybest = by;
     }
 }
-int getAlignResults::dist(cv::Mat3b a, cv::Mat3b b, int ax, int ay, int bx, int by, int cutoff)
+int TextureMapper::dist(cv::Mat3b a, cv::Mat3b b, int ax, int ay, int bx, int by, int cutoff)
 {
     int ans = 0;
     for ( int index = 0; index < settings.patchSize; index++) {
@@ -953,7 +954,7 @@ int getAlignResults::dist(cv::Mat3b a, cv::Mat3b b, int ax, int ay, int bx, int 
 /*----------------------------------------------
  *  Generate Ti
  * ---------------------------------------------*/
-void getAlignResults::generateTargetI(size_t target_id, std::map<size_t, cv::Mat3b> textures)
+void TextureMapper::generateTargetI(size_t target_id, std::map<size_t, cv::Mat3b> textures)
 {
     int total = settings.imgH * settings.imgW;
     cv::Mat3b target( cv::Size(settings.imgW, settings.imgH), cv::Vec3b(255,255,255) );
@@ -1032,7 +1033,7 @@ void getAlignResults::generateTargetI(size_t target_id, std::map<size_t, cv::Mat
     }
 }
 
-void getAlignResults::getSimilarityTerm(cv::Mat3b S, cv::Mat3i ann_s2t, cv::Mat3i ann_t2s, cv::Mat4i &su, cv::Mat4i &sv)
+void TextureMapper::getSimilarityTerm(cv::Mat3b S, cv::Mat3i ann_s2t, cv::Mat3i ann_t2s, cv::Mat4i &su, cv::Mat4i &sv)
 {
     int total = settings.imgH * settings.imgW;
 #pragma omp parallel for
@@ -1066,7 +1067,7 @@ void getAlignResults::getSimilarityTerm(cv::Mat3b S, cv::Mat3i ann_s2t, cv::Mat3
         calcSuv(S, x, y, sv, i, j, settings.patchWidth);
     }
 }
-void getAlignResults::calcSuv(cv::Mat3b S, int i, int j, cv::Mat4i &s, int x, int y, int w)
+void TextureMapper::calcSuv(cv::Mat3b S, int i, int j, cv::Mat4i &s, int x, int y, int w)
 {
     for ( int dy = 0; dy < w; dy++ ) {
         for ( int dx = 0; dx < w; dx++ ) {
@@ -1083,7 +1084,7 @@ void getAlignResults::calcSuv(cv::Mat3b S, int i, int j, cv::Mat4i &s, int x, in
 /*----------------------------------------------
  *  Generate Mi
  * ---------------------------------------------*/
-void getAlignResults::generateTextureI(size_t texture_id, std::map<size_t, cv::Mat3b> targets)
+void TextureMapper::generateTextureI(size_t texture_id, std::map<size_t, cv::Mat3b> targets)
 {
     int total = settings.imgH * settings.imgW;
     cv::Mat3b texture( cv::Size(settings.imgW, settings.imgH), cv::Vec3b(255,255,255) );
@@ -1143,7 +1144,7 @@ void getAlignResults::generateTextureI(size_t texture_id, std::map<size_t, cv::M
 /*----------------------------------------------
  *  Generate Mi with S
  * ---------------------------------------------*/
-void getAlignResults::generateTextureIWithS(size_t texture_id, std::string fullname)
+void TextureMapper::generateTextureIWithS(size_t texture_id, std::string fullname)
 {
     int total = settings.imgH * settings.imgW;
     cv::Mat3b texture( cv::Size(settings.imgW, settings.imgH) );
@@ -1182,7 +1183,7 @@ void getAlignResults::generateTextureIWithS(size_t texture_id, std::string fulln
 //   path = resultsPath + "/" + newResolution
 //   filename = "result"
 //   resultImgNamePattern = "T_%03d"
-void getAlignResults::generateTexturedOBJ(std::string path, std::string filename, std::string resultImgNamePattern)
+void TextureMapper::generateTexturedOBJ(std::string path, std::string filename, std::string resultImgNamePattern)
 {
     // store uv coords
     //  start from 1
@@ -1251,7 +1252,7 @@ void getAlignResults::generateTexturedOBJ(std::string path, std::string filename
     // writeCameraTraj(resultImgNamePattern);
 }
 
-bool getAlignResults::checkMeshMapImg(size_t mesh_i, size_t img_i, std::vector<cv::Point2i> &v_uv, float &score)
+bool TextureMapper::checkMeshMapImg(size_t mesh_i, size_t img_i, std::vector<cv::Point2i> &v_uv, float &score)
 {
     v_uv.clear();
     bool flag = true;
@@ -1274,7 +1275,7 @@ bool getAlignResults::checkMeshMapImg(size_t mesh_i, size_t img_i, std::vector<c
     return flag;
 }
 
-void getAlignResults::saveOBJwithMTL(std::string path, std::string filename, std::string resultImgNamePattern,
+void TextureMapper::saveOBJwithMTL(std::string path, std::string filename, std::string resultImgNamePattern,
                                      open3d::geometry::PointCloud cloud,
                                      std::vector<cv::Point2f> uv_coords,
                                      std::map<size_t, std::vector<struct face_info>> mesh_info)

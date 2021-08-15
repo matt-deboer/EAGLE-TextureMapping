@@ -22,9 +22,8 @@
 #include <rayint/acc/bvh_tree.h>
 
 #include "eagle/settings.h"
-#include "eagle/utils.h"
 
-class getAlignResults
+class TextureMapper
 {
 public:
     Settings settings;
@@ -62,8 +61,8 @@ public:
     double lamda, patchRandomSearch;
     double E1, E2;
 
-    getAlignResults(Settings &_settings);
-    ~getAlignResults();
+    TextureMapper(Settings &_settings);
+    ~TextureMapper();
     void LOG(std::string t, bool nl = true);
 
     std::string getImgFilename(size_t img_i);
