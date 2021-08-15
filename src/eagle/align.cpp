@@ -1,6 +1,7 @@
 #include "eagle/align.h"
 #include <filesystem>
 
+
 /*----------------------------------------------
  *  Log Settings
  * ---------------------------------------------*/
@@ -738,7 +739,7 @@ void TextureMapper::doIterations()
         // init Ti and Mi or upsample
         if ( init_T_M == true ) {
             for( size_t i : kfIndexs ) {
-                std::string filename = std::filesystem::path(sourcesFiles[i]).filesystem();
+                std::string filename = std::filesystem::path(sourcesFiles[i]).filename();
                 targetsFiles[i] = targetsPath + "/" + filename;
                 system( ("cp " + sourcesFiles[i] + " " + targetsFiles[i]).c_str() );
                 texturesFiles[i] = texturesPath + "/" + filename;

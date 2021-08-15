@@ -9,6 +9,7 @@
 #include <cfloat>
 #include <time.h>
 #include <sys/time.h>
+#include <fstream>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
