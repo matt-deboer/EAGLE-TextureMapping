@@ -1,4 +1,4 @@
-#include "eagle/align.h"
+#include "eagle/tex_mapper.h"
 #include <filesystem>
 
 
@@ -30,6 +30,23 @@
 TextureMapper::TextureMapper(Settings &_settings)
 {
     settings = _settings;
+    
+}
+TextureMapper::~TextureMapper()
+{
+    log.close();
+
+    sourcesImgs.clear();
+    targetsImgs.clear();
+    texturesImgs.clear();
+
+    weights.clear();
+    for( size_t t : kfIndexs ) {
+        mappings[t].clear();
+    }
+    mappings.clear();
+}
+void TextureMapper::mapTextures() {
     cv::glob(settings.keyFramesPath + "/" + settings.kfRGBMatch, sourcesOrigin, false);
     // range of all frames
     kfStart = 0; kfTotal = sourcesOrigin.size();
@@ -109,21 +126,6 @@ TextureMapper::TextureMapper(Settings &_settings)
     LOG("[ Running from " + std::string(time_start_str) + " to " + std::string(time_end_str) + " ]");
     LOG("[ Finish in " + std::to_string(all_seconds) + " s ]");
 }
-TextureMapper::~TextureMapper()
-{
-    log.close();
-
-    sourcesImgs.clear();
-    targetsImgs.clear();
-    texturesImgs.clear();
-
-    weights.clear();
-    for( size_t t : kfIndexs ) {
-        mappings[t].clear();
-    }
-    mappings.clear();
-}
-
 /*----------------------------------------------
  *  LOG
  * ---------------------------------------------*/

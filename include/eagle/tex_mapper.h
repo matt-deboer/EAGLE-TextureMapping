@@ -69,6 +69,8 @@ public:
     std::string getImgFilename(size_t img_i);
     std::string getImgFilename(size_t img_i, std::string pre, std::string ext);
 
+    void mapTextures();
+
     void readDepthImgs();
     float getDepthRaw(size_t img_i, int x, int y);
     float getDepth(size_t img_i, int x, int y);
