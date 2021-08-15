@@ -9,8 +9,8 @@
 #ifndef ACC_ACCELERATION_HEADER
 #define ACC_ACCELERATION_HEADER
 
-#include "kd_tree.h"
-#include "bvh_tree.h"
+#include "rayint/acc/kd_tree.h"
+#include "rayint/acc/bvh_tree.h"
 
 ACC_NAMESPACE_BEGIN
 

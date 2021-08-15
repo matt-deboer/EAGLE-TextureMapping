@@ -1,4 +1,4 @@
-#include "settings.h"
+#include "eagle/settings.h"
 #include "eagle/utils.h"
 #include "eagle/align.h"
 

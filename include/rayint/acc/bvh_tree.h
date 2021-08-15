@@ -18,7 +18,7 @@
 #include <thread>
 #include <limits>
 
-#include "primitives.h"
+#include "rayint/acc/primitives.h"
 
 ACC_NAMESPACE_BEGIN
 

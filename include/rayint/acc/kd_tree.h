@@ -13,7 +13,7 @@
 #include <stack>
 #include <limits>
 
-#include <math/vector.h>
+#include <rayint/math/vector.h>
 
 ACC_NAMESPACE_BEGIN
 

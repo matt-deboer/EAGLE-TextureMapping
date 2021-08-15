@@ -15,7 +15,7 @@
 #include <iterator>
 #include <stdexcept>
 
-#include "math/defines.h"
+#include "rayint/math/defines.h"
 
 MATH_NAMESPACE_BEGIN
 MATH_ALGO_NAMESPACE_BEGIN

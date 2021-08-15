@@ -17,8 +17,8 @@
 #include <cmath>
 #include <ostream>
 
-#include "math/defines.h"
-#include "math/algo.h"
+#include "rayint/math/defines.h"
+#include "rayint/math/algo.h"
 
 MATH_NAMESPACE_BEGIN
 

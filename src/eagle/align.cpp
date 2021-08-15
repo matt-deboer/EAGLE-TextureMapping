@@ -1,4 +1,4 @@
-#include "eagle/getalignresults.h"
+#include "eagle/align.h"
 
 /*----------------------------------------------
  *  Log Settings
@@ -70,7 +70,7 @@ getAlignResults::getAlignResults(Settings &_settings)
     mesh_num = mesh.triangles_.size();
     LOG("[ PLY Model: " + std::to_string(point_num) + " vertexs | " + std::to_string(mesh_num) + " faces ]");
     // convert to PointCloud
-    cloud.points_ = mesh.vertices_;
+    cloud_rgb.points_ = mesh.vertices_;
     calcNormals();
 
     readDepthImgs();
@@ -1248,7 +1248,7 @@ void getAlignResults::generateTexturedOBJ(std::string path, std::string filename
         }
     }
     saveOBJwithMTL(path, filename, resultImgNamePattern, cloud_rgb, uv_coords, mesh_info);
-    writeCameraTraj(resultImgNamePattern);
+    // writeCameraTraj(resultImgNamePattern);
 }
 
 bool getAlignResults::checkMeshMapImg(size_t mesh_i, size_t img_i, std::vector<cv::Point2i> &v_uv, float &score)
@@ -1301,10 +1301,10 @@ void getAlignResults::saveOBJwithMTL(std::string path, std::string filename, std
     out.open ( path + "/" + filename + ".obj" );
     out << "mtllib " << filename + ".mtl" << std::endl;
     //  output vertices
-    for (size_t i = 0; i < cloud.size(); ++i) {
-        out << "v " << cloud.points[i].x << " "
-            << cloud.points[i].y << " "
-            << cloud.points[i].z << std::endl;
+    for (size_t i = 0; i < cloud.points_.size(); ++i) {
+        out << "v " << cloud.points_[i].x() << " "
+            << cloud.points_[i].y() << " "
+            << cloud.points_[i].z() << std::endl;
     }
     //  output uv-coords // discard the first invalid coord
     for (size_t i = 1; i < uv_coords.size(); ++i) {

@@ -11,9 +11,9 @@
 
 #include <limits>
 
-#include <math/vector.h>
+#include <rayint/math/vector.h>
 
-#include "defines.h"
+#include "rayint/acc/defines.h"
 
 ACC_NAMESPACE_BEGIN
 

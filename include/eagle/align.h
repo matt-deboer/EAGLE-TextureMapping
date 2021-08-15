@@ -1,6 +1,7 @@
 #ifndef GETALIGNRESULTS_H
 #define GETALIGNRESULTS_H
 
+#include <open3d/geometry/PointCloud.h>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -18,10 +19,10 @@
 // #include <pcl/PolygonMesh.h>
 // #include <pcl/conversions.h>
 
-#include <acc/bvh_tree.h>
+#include <rayint/acc/bvh_tree.h>
 
-#include "settings.h"
-#include "Eagle_Utils.h"
+#include "eagle/settings.h"
+#include "eagle/utils.h"
 
 class getAlignResults
 {
@@ -30,10 +31,8 @@ public:
     std::ofstream log;
 
     std::vector<cv::Mat1f> cameraPoses; // cameraPos matrix's array
-    // pcl::PolygonMesh mesh;
     open3d::geometry::TriangleMesh mesh;
 
-    // pcl::PointCloud<pcl::PointXYZRGB> cloud_rgb;
     open3d::geometry::PointCloud cloud_rgb;
     size_t point_num, mesh_num;
     std::vector<cv::Vec3f> vertex_normal;
@@ -122,8 +121,8 @@ public:
         std::vector<size_t> n_index = std::vector<size_t>(3);
     };
     void generateTexturedOBJ(std::string path, std::string filename, std::string resultImgNamePattern);
-    void saveOBJwithMTL(std::string path, std::string filename, std::string resultImgNamePattern, pcl::PointCloud<pcl::PointXYZRGB> cloud, std::vector<cv::Point2f> uv_coords, std::map<size_t, std::vector<struct face_info>> mesh_info);
-    bool checkMeshMapImg(size_t mesh_i, size_t img_i, std::vector<cv::Point2i> &v_uv);
+    void saveOBJwithMTL(std::string path, std::string filename, std::string resultImgNamePattern, open3d::geometry::PointCloud cloud, std::vector<cv::Point2f> uv_coords, std::map<size_t, std::vector<struct face_info>> mesh_info);
+    bool checkMeshMapImg(size_t mesh_i, size_t img_i, std::vector<cv::Point2i> &v_uv, float &score);
 };
 
 #endif // GETALIGNRESULTS_H
