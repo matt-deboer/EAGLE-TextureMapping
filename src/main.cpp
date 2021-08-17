@@ -4,8 +4,8 @@
 
 int main()
 {
-    Settings settings = Settings();
+    eagle::Settings settings{};
     std::filesystem::create_directories(settings.keyFramesPath);
-    TextureMapper tex_mapper(settings);
+    eagle::TextureMapper tex_mapper{settings};
     return 0;
 }

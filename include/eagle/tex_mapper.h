@@ -24,6 +24,8 @@
 
 #include "eagle/settings.h"
 
+namespace eagle {
+
 class TextureMapper
 {
 public:
@@ -126,5 +128,5 @@ public:
     void saveOBJwithMTL(std::string path, std::string filename, std::string resultImgNamePattern, open3d::geometry::PointCloud cloud, std::vector<cv::Point2f> uv_coords, std::map<size_t, std::vector<struct face_info>> mesh_info);
     bool checkMeshMapImg(size_t mesh_i, size_t img_i, std::vector<cv::Point2i> &v_uv, float &score);
 };
-
+}
 #endif // GETALIGNRESULTS_H

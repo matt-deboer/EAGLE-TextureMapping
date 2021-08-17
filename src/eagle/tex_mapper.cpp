@@ -22,7 +22,10 @@
 #define EPS 1e-10
 #define EAGLE_MAX(x,y) (x > y ? x : y)
 #define EAGLE_MIN(x,y) (x < y ? x : y)
+
 #define EAGLE_EQU_F(a,b) (fabs(a-b) <= 1e-6)
+
+namespace eagle {
 
 /*----------------------------------------------
  *  Main
@@ -758,7 +761,7 @@ void TextureMapper::doIterations()
                 std::filesystem::copy_file(sourcesFiles[i], texturesFiles[i]);
             }
             init_T_M = false;
-        }else{
+        } else{
             for( size_t i : kfIndexs ){ // [REQUIRE] ImageMagick
                 // system( ("convert " + targetsFiles[i] + " -resize " + newResolution + "! " + targetsFiles[i]).c_str() );
                 {
@@ -1392,4 +1395,5 @@ void TextureMapper::saveOBJwithMTL(std::string path, std::string filename, std::
         }
     }
     out.close();
+}
 }

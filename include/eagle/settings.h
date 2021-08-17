@@ -4,6 +4,8 @@
 #include <opencv2/opencv.hpp>
 // #include <opencv2/highgui/highgui.hpp>
 
+namespace eagle {
+
 class Settings
 {
 public:
@@ -150,7 +152,7 @@ public:
         imgH = originImgH;
     }
 
-    void init_zhou_small(){
+    void init_zhou_small() {
         originImgW = 640;
         originImgH = 480;
         cameraFx = 525.0f;
@@ -184,5 +186,5 @@ public:
         lamda = 5;
     }
 };
-
+}
 #endif // SETTINGS_H
