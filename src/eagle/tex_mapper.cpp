@@ -77,20 +77,20 @@ void TextureMapper::mapTextures() {
     resultsPath = processPath + "/results";
     std::filesystem::create_directories(resultsPath);
     log.open( resultsPath + "/LOG.log" );
-    LOG("[ From Path: " + settings.keyFramesPath + " ]");
-    LOG("[ To Path: ./results_Bi17" + settings.resultsPathSurfix + " ]" );
-    LOG("[ Alpha U: " + std::to_string(settings.alpha_u) + " | Alpha V: " + std::to_string(settings.alpha_v) + " ] ");
-    LOG("[ Patch Width: " + std::to_string(settings.patchWidth) +
+    debug_log("[ From Path: " + settings.keyFramesPath + " ]");
+    debug_log("[ To Path: ./results_Bi17" + settings.resultsPathSurfix + " ]" );
+    debug_log("[ Alpha U: " + std::to_string(settings.alpha_u) + " | Alpha V: " + std::to_string(settings.alpha_v) + " ] ");
+    debug_log("[ Patch Width: " + std::to_string(settings.patchWidth) +
         " | Patch Step: " + std::to_string(settings.patchStep) +
         " | Patch Random Search: " + std::to_string(settings.patchRandomSearchTimes) + " ]");
-    LOG("[ Scale: " + std::to_string(settings.scaleTimes) +
+    debug_log("[ Scale: " + std::to_string(settings.scaleTimes) +
         " | From " + std::to_string(settings.scaleInitW) + "x" + std::to_string(settings.scaleInitH) +
         " to " + std::to_string(settings.originImgW) + "x" + std::to_string(settings.originImgH) + " ]");
 
     open3d::io::ReadTriangleMesh(settings.keyFramesPath + "/" + settings.plyFile, mesh);
     point_num = mesh.vertices_.size();
     mesh_num = mesh.triangles_.size();
-    LOG("[ PLY Model: " + std::to_string(point_num) + " vertexs | " + std::to_string(mesh_num) + " faces ]");
+    debug_log("[ PLY Model: " + std::to_string(point_num) + " vertexs | " + std::to_string(mesh_num) + " faces ]");
     // convert to PointCloud
     cloud_rgb.points_ = mesh.vertices_;
     calcNormals();
@@ -98,13 +98,13 @@ void TextureMapper::mapTextures() {
     readDepthImgs();
 
     // read the camera's world positions of keyframes
-    LOG("[ Read Camera Matrixs ] ");
+    debug_log("[ Read Camera Matrixs ] ");
     if ( std::filesystem::exists(settings.keyFramesPath + "/" + settings.kfCameraTxtFile) )
         readCameraTraj(settings.keyFramesPath + "/" + settings.kfCameraTxtFile);
     else
         readCameraTraj();
 
-    LOG("[ Init Success. " + std::to_string(kfIndexs.size()) + " / " + std::to_string(kfTotal) + " Images " + "]");
+    debug_log("[ Init Success. " + std::to_string(kfIndexs.size()) + " / " + std::to_string(kfTotal) + " Images " + "]");
 
     time_t start, end;
     struct timeval tv;
@@ -126,13 +126,13 @@ void TextureMapper::mapTextures() {
     time(&end);
 
     double all_seconds = difftime(end, start);
-    LOG("[ Running from " + std::string(time_start_str) + " to " + std::string(time_end_str) + " ]");
-    LOG("[ Finish in " + std::to_string(all_seconds) + " s ]");
+    debug_log("[ Running from " + std::string(time_start_str) + " to " + std::string(time_end_str) + " ]");
+    debug_log("[ Finish in " + std::to_string(all_seconds) + " s ]");
 }
 /*----------------------------------------------
  *  LOG
  * ---------------------------------------------*/
-void TextureMapper::LOG(std::string t, bool nl)
+void TextureMapper::debug_log(std::string t, bool nl)
 {
     std::cout << t;
     log << t;
@@ -396,7 +396,7 @@ bool TextureMapper::pointOnBoundary(size_t img_id, int x, int y)
  * ---------------------------------------------*/
 void TextureMapper::calcNormals()
 {
-    LOG("[ Calculating Normals of each Vertex ]");
+    debug_log("[ Calculating Normals of each Vertex ]");
     //std::vector<cv::Vec3f> vertex_normal(point_num); // vertex id => cv::Vec3f
     vertex_normal.resize(point_num);
     // store each vertex's total weight angle
@@ -435,7 +435,7 @@ void TextureMapper::calcNormals()
 // calculate valid mesh for each pixel on every image
 void TextureMapper::calcValidMesh()
 {
-    LOG("[ Calculating Depth, Distance and Weight ]");
+    debug_log("[ Calculating Depth, Distance and Weight ]");
 
     // init ray intersection
     std::vector<unsigned int> faces(mesh_num * 3);
@@ -460,9 +460,9 @@ void TextureMapper::calcValidMesh()
             struct valid_info info;
             img_valid_info[t][pixel_index] = info;
         }
-        LOG( " " + std::to_string(t) + " << ", false );
+        debug_log( " " + std::to_string(t) + " << ", false );
         calcImgValidMesh(t, bvhtree);
-        LOG( " ", true );
+        debug_log( " ", true );
     }
 }
 // using the ray intersection method to get the pixel's depth
@@ -553,8 +553,8 @@ void TextureMapper::calcImgValidMesh(size_t img_i, BVHTree &bvhtree)
                 weight_min = weight;
         }
     }
-    LOG("depth: " + std::to_string(sqrt(depth_min)) + " to " + std::to_string(sqrt(depth_max)) + " | ", false );
-    LOG("d: " + std::to_string(sqrt(d2_min)) + " to " + std::to_string(sqrt(d2_max)), false );
+    debug_log("depth: " + std::to_string(sqrt(depth_min)) + " to " + std::to_string(sqrt(depth_max)) + " | ", false );
+    debug_log("d: " + std::to_string(sqrt(d2_min)) + " to " + std::to_string(sqrt(d2_max)), false );
 
 #pragma omp parallel for
     for ( size_t pixel_index = 0; pixel_index < total; pixel_index++) {
@@ -571,15 +571,15 @@ void TextureMapper::calcImgValidMesh(size_t img_i, BVHTree &bvhtree)
 // calculate valid patch to accelerate the patchmatch
 void TextureMapper::calcValidPatch()
 {
-    LOG("[ Select valid patchs ]");
-    LOG( " Valid Patch << ", false );
+    debug_log("[ Select valid patchs ]");
+    debug_log( " Valid Patch << ", false );
     img_valid_patch.clear(); // pixel_index => valid_info
     for( size_t t : kfIndexs ) {
         img_valid_patch[t] = cv::Mat1i(settings.imgH, settings.imgW);
         calcImgValidPatch(t);
-        LOG( std::to_string(t) + " ", false );
+        debug_log( std::to_string(t) + " ", false );
     }
-    LOG( "<< Done" );
+    debug_log( "<< Done" );
 }
 void TextureMapper::calcImgValidPatch(size_t img_i)
 {
@@ -611,19 +611,19 @@ void TextureMapper::calcRemapping()
 {
     //std::map<size_t, std::map<size_t, cv::Mat>> mappings;
     mappings.clear();
-    LOG("[ Image Remapping ]");
+    debug_log("[ Image Remapping ]");
     for( size_t img_i : kfIndexs) {
         mappings[img_i] = std::map<size_t, cv::Mat>();
-        LOG( " " + std::to_string(img_i) + " to ", false );
+        debug_log( " " + std::to_string(img_i) + " to ", false );
         for( size_t img_j : kfIndexs ) {
             mappings[img_i][img_j] = cv::Mat3i( cv::Size(settings.imgW, settings.imgH) );
             for( int i = 0; i < settings.imgW; i++ )
                 for( int j = 0; j < settings.imgH; j++ )
                     mappings[img_i][img_j].at<cv::Vec3i>(j, i) = cv::Vec3i(0,0,0);
             calcImgRemapping(img_i, img_j);
-            LOG( std::to_string(img_j) + " ", false );
+            debug_log( std::to_string(img_j) + " ", false );
         }
-        LOG( "<< Done" );
+        debug_log( "<< Done" );
     }
     showRemapping();
 }
@@ -709,8 +709,8 @@ void TextureMapper::doIterations()
         char tmp[10]; sprintf(tmp, "%dx%d", settings.imgW, settings.imgH);
         std::string newResolution(tmp);
         cv::Size newSize{settings.imgW, settings.imgH};
-        LOG("[ Scale to " + newResolution + " (" + std::to_string(scale+1) + ") ]");
-        LOG("[ Lamda: " + std::to_string(lamda) + " ]");
+        debug_log("[ Scale to " + newResolution + " (" + std::to_string(scale+1) + ") ]");
+        debug_log("[ Lamda: " + std::to_string(lamda) + " ]");
 
         // using ray intersection method to get all pixels' depth and weight
         calcValidMesh();
@@ -787,20 +787,20 @@ void TextureMapper::doIterations()
 
         // do iterations
         for ( size_t _count = 0; _count < settings.scaleIters[scale]; _count++) {
-            LOG("[ Iteration " + std::to_string(_count+1) + " at " + newResolution + " ]");
+            debug_log("[ Iteration " + std::to_string(_count+1) + " at " + newResolution + " ]");
             E1 = 0; E2 = 0;
-            LOG( " T << ", false );
+            debug_log( " T << ", false );
             for( size_t i : kfIndexs ) {
                 generateTargetI(i, texturesImgs);
-                LOG(std::to_string(i) + " ", false);
+                debug_log(std::to_string(i) + " ", false);
             }
-            LOG( "<< E1: " + std::to_string(E1), true );
-            LOG( " M << ", false );
+            debug_log( "<< E1: " + std::to_string(E1), true );
+            debug_log( " M << ", false );
             for( size_t i : kfIndexs ) {
                 generateTextureI(i, targetsImgs);
-                LOG(std::to_string(i) + " ", false);
+                debug_log(std::to_string(i) + " ", false);
             }
-            LOG( "<< E2: " + std::to_string(E2), true );
+            debug_log( "<< E2: " + std::to_string(E2), true );
         }
         if( !OUTPUT_T_M_INSTANT )
             for( size_t i : kfIndexs ){
@@ -827,7 +827,7 @@ void TextureMapper::doIterations()
                     cv::imwrite(resultsPath+"/"+getImgFilename(i, "M_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt), resized);
                 }
             }
-        LOG( "[ Results at " + newResolution + " Saving Success ]" );
+        debug_log( "[ Results at " + newResolution + " Saving Success ]" );
     }
     if ( !OUTPUT_ALL_SCALE_M ) {
         scale = 9;
@@ -863,7 +863,7 @@ void TextureMapper::doIterations()
     generateTexturedOBJ(resultsPath, "S", "S_%03d");
     //generateTexturedOBJ(resultsPath, "T", "T_%03d_"+std::to_string(settings.scaleTimes));
     generateTexturedOBJ(resultsPath, "M", "M_%03d_"+std::to_string(settings.scaleTimes));
-    LOG("[ Generate OBJ file Success ]");
+    debug_log("[ Generate OBJ file Success ]");
 }
 
 void TextureMapper::doOBJGenerationOnly()
@@ -895,7 +895,7 @@ void TextureMapper::doOBJGenerationOnly()
     if (std::filesystem::exists(resultsPath + "/M_000_10."+settings.rgbNameExt) )
         generateTexturedOBJ(resultsPath, "M", "M_%03d_"+std::to_string(settings.scaleTimes));
 
-    LOG("[ Generate OBJ file Success ]");
+    debug_log("[ Generate OBJ file Success ]");
 }
 
 

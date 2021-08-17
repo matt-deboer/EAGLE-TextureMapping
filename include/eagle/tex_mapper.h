@@ -66,7 +66,7 @@ public:
 
     TextureMapper(Settings &_settings);
     ~TextureMapper();
-    void LOG(std::string t, bool nl = true);
+    void debug_log(std::string t, bool nl = true);
 
     std::string getImgFilename(size_t img_i);
     std::string getImgFilename(size_t img_i, std::string pre, std::string ext);
