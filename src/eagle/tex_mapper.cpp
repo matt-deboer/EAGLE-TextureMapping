@@ -693,6 +693,7 @@ void TextureMapper::doIterations()
     bool init_T_M = true;
     char tmp_[16]; sprintf(tmp_, "%dx%d", settings.originImgW, settings.originImgH);
     std::string originResolution(tmp_);
+    cv::Size originSize{settings.originImgW, settings.originImgH};
     for ( ; scale < settings.scaleTimes; scale++) {
         // downsample imgs
         settings.imgW = static_cast<int>(std::round(settings.scaleInitW * 1.0 * pow(settings.scaleFactor, scale)));
@@ -704,6 +705,7 @@ void TextureMapper::doIterations()
 
         char tmp[10]; sprintf(tmp, "%dx%d", settings.imgW, settings.imgH);
         std::string newResolution(tmp);
+        cv::Size newSize{settings.imgW, settings.imgH};
         LOG("[ Scale to " + newResolution + " (" + std::to_string(scale+1) + ") ]");
         LOG("[ Lamda: " + std::to_string(lamda) + " ]");
 
@@ -719,7 +721,13 @@ void TextureMapper::doIterations()
         for( size_t i : kfIndexs ) {
             std::string filename = std::filesystem::path(sourcesOrigin[i]).filename();
             sourcesFiles[i] = sourcesPath + "/" + filename;
-            system( ("convert " + sourcesOrigin[i] + " -resize " + newResolution + "! " + sourcesFiles[i]).c_str() );
+            // system( ("convert " + sourcesOrigin[i] + " -resize " + newResolution + "! " + sourcesFiles[i]).c_str() );
+            {
+                auto img = cv::imread(sourcesOrigin[i], cv::IMREAD_COLOR);
+                cv::Mat resized;
+                cv::resize(img, resized, newSize);
+                cv::imwrite(sourcesFiles[i], resized);
+            }
 
             // get the mask from the depth
             cv::Mat depth_show = cv::imread(weightsPath + "/weight_"+std::to_string(i)+".png");
@@ -743,15 +751,29 @@ void TextureMapper::doIterations()
             for( size_t i : kfIndexs ) {
                 std::string filename = std::filesystem::path(sourcesFiles[i]).filename();
                 targetsFiles[i] = targetsPath + "/" + filename;
-                system( ("cp " + sourcesFiles[i] + " " + targetsFiles[i]).c_str() );
+                // system( ("cp " + sourcesFiles[i] + " " + targetsFiles[i]).c_str() );
+                std::filesystem::copy_file(sourcesFiles[i], targetsFiles[i]);
                 texturesFiles[i] = texturesPath + "/" + filename;
-                system( ("cp " + sourcesFiles[i] + " " + texturesFiles[i]).c_str() );
+                // system( ("cp " + sourcesFiles[i] + " " + texturesFiles[i]).c_str() );
+                std::filesystem::copy_file(sourcesFiles[i], texturesFiles[i]);
             }
             init_T_M = false;
         }else{
             for( size_t i : kfIndexs ){ // [REQUIRE] ImageMagick
-                system( ("convert " + targetsFiles[i] + " -resize " + newResolution + "! " + targetsFiles[i]).c_str() );
-                system( ("convert " + texturesFiles[i] + " -resize " + newResolution + "! " + texturesFiles[i]).c_str() );
+                // system( ("convert " + targetsFiles[i] + " -resize " + newResolution + "! " + targetsFiles[i]).c_str() );
+                {
+                    auto img = cv::imread(targetsFiles[i], cv::IMREAD_COLOR);
+                    cv::Mat resized;
+                    cv::resize(img, resized, newSize);
+                    cv::imwrite(targetsFiles[i], resized);
+                }
+                // system( ("convert " + texturesFiles[i] + " -resize " + newResolution + "! " + texturesFiles[i]).c_str() );
+                {
+                    auto img = cv::imread(texturesFiles[i], cv::IMREAD_COLOR);
+                    cv::Mat resized;
+                    cv::resize(img, resized, newSize);
+                    cv::imwrite(texturesFiles[i], resized);
+                }
             }
         }
         targetsImgs.clear(); texturesImgs.clear();
@@ -787,8 +809,20 @@ void TextureMapper::doIterations()
         if ( OUTPUT_ALL_SCALE_M )
             for( size_t i : kfIndexs ){
                 // [REQUIRE] ImageMagick
-                system( ("convert " + targetsFiles[i] + " -resize " + originResolution + "! " + resultsPath+"/"+getImgFilename(i, "T_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt)).c_str() );
-                system( ("convert " + texturesFiles[i] + " -resize " + originResolution + "! " + resultsPath+"/"+getImgFilename(i, "M_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt)).c_str() );
+                // system( ("convert " + targetsFiles[i] + " -resize " + originResolution + "! " + resultsPath+"/"+getImgFilename(i, "T_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt)).c_str() );
+                {
+                    auto img = cv::imread(targetsFiles[i], cv::IMREAD_COLOR);
+                    cv::Mat resized;
+                    cv::resize(img, resized, originSize);
+                    cv::imwrite(resultsPath+"/"+getImgFilename(i, "T_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt), resized);
+                }
+                // system( ("convert " + texturesFiles[i] + " -resize " + originResolution + "! " + resultsPath+"/"+getImgFilename(i, "M_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt)).c_str() );
+                {
+                    auto img = cv::imread(texturesFiles[i], cv::IMREAD_COLOR);
+                    cv::Mat resized;
+                    cv::resize(img, resized, originSize);
+                    cv::imwrite(resultsPath+"/"+getImgFilename(i, "M_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt), resized);
+                }
             }
         LOG( "[ Results at " + newResolution + " Saving Success ]" );
     }
@@ -796,14 +830,32 @@ void TextureMapper::doIterations()
         scale = 9;
         for( size_t i : kfIndexs ){
             // [REQUIRE] ImageMagick
-            system( ("convert " + targetsFiles[i] + " -resize " + originResolution + "! " + resultsPath+"/"+getImgFilename(i, "T_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt)).c_str() );
-            system( ("convert " + texturesFiles[i] + " -resize " + originResolution + "! " + resultsPath+"/"+getImgFilename(i, "M_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt)).c_str() );
+            // system( ("convert " + targetsFiles[i] + " -resize " + originResolution + "! " + resultsPath+"/"+getImgFilename(i, "T_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt)).c_str() );
+            {
+                auto img = cv::imread(targetsFiles[i], cv::IMREAD_COLOR);
+                cv::Mat resized;
+                cv::resize(img, resized, originSize);
+                cv::imwrite(resultsPath+"/"+getImgFilename(i, "T_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt), resized);
+            }
+            // system( ("convert " + texturesFiles[i] + " -resize " + originResolution + "! " + resultsPath+"/"+getImgFilename(i, "M_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt)).c_str() );
+            {
+                auto img = cv::imread(texturesFiles[i], cv::IMREAD_COLOR);
+                cv::Mat resized;
+                cv::resize(img, resized, originSize);
+                cv::imwrite(resultsPath+"/"+getImgFilename(i, "M_", "_"+std::to_string(scale+1)+"."+settings.rgbNameExt), resized);
+            }
         }
     }
     for( size_t i : kfIndexs ) {
         std::string s_file = resultsPath+"/" +getImgFilename(i, "S_", "."+settings.rgbNameExt);
         generateTextureIWithS(i, s_file);
-        system( ("convert " + s_file + " -resize " + originResolution + "! " + s_file).c_str() );
+        // system( ("convert " + s_file + " -resize " + originResolution + "! " + s_file).c_str() );
+        {
+            auto img = cv::imread(s_file, cv::IMREAD_COLOR);
+            cv::Mat resized;
+            cv::resize(img, resized, originSize);
+            cv::imwrite(s_file, resized);
+        }
     }
     generateTexturedOBJ(resultsPath, "S", "S_%03d");
     //generateTexturedOBJ(resultsPath, "T", "T_%03d_"+std::to_string(settings.scaleTimes));
@@ -819,7 +871,8 @@ void TextureMapper::doOBJGenerationOnly()
     for( size_t i : kfIndexs ) {
         std::string filename = std::filesystem::path(sourcesOrigin[i]).filename();
         sourcesFiles[i] = sourcesPath + "/" + filename;
-        system( ("cp " + sourcesOrigin[i] + " " + sourcesFiles[i]).c_str() );
+        // system( ("cp " + sourcesOrigin[i] + " " + sourcesFiles[i]).c_str() );
+        std::filesystem::copy_file(sourcesOrigin[i], sourcesFiles[i]);
         sourcesImgs[i] = cv::imread(sourcesFiles[i]);
     }
 

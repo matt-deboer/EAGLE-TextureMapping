@@ -15,7 +15,7 @@ public:
 
     std::string resultsPathSurfix;
     std::string allFramesPath, cameraTxtFile, camTrajNamePattern;
-    std::string keyFramesPath, kfCameraTxtFile, patchmatchBinFile, originResolution, plyFile;
+    std::string keyFramesPath, kfCameraTxtFile, originResolution, plyFile;
     std::string rgbNamePattern, dNamePattern, kfRGBNamePattern, kfDNamePattern, rgbNameExt, kfRGBMatch;
     bool camTrajFromWorldToCam;
     float cameraDFx, cameraDFy, cameraDCx, cameraDCy, cameraFx, cameraFy, cameraCx, cameraCy;
