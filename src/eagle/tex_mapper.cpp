@@ -83,16 +83,6 @@ void TextureMapper::mapTextures() {
     // make the dir to store iteration results
     resultsPath = processPath + "/results";
     std::filesystem::create_directories(resultsPath);
-    log.open( resultsPath + "/LOG.log" );
-    debug_log("[ From Path: " + settings.keyFramesPath + " ]");
-    debug_log("[ To Path: ./results_Bi17" + settings.resultsPathSurfix + " ]" );
-    debug_log("[ Alpha U: " + std::to_string(settings.alpha_u) + " | Alpha V: " + std::to_string(settings.alpha_v) + " ] ");
-    debug_log("[ Patch Width: " + std::to_string(settings.patchWidth) +
-        " | Patch Step: " + std::to_string(settings.patchStep) +
-        " | Patch Random Search: " + std::to_string(settings.patchRandomSearchTimes) + " ]");
-    debug_log("[ Scale: " + std::to_string(settings.scaleTimes) +
-        " | From " + std::to_string(settings.scaleInitW) + "x" + std::to_string(settings.scaleInitH) +
-        " to " + std::to_string(settings.originImgW) + "x" + std::to_string(settings.originImgH) + " ]");
 
     open3d::io::ReadTriangleMesh(settings.keyFramesPath + "/" + settings.plyFile, mesh);
     point_num = mesh.vertices_.size();
@@ -112,6 +102,17 @@ void TextureMapper::mapTextures() {
         readCameraTraj(settings.keyFramesPath + "/" + settings.kfCameraTxtFile);
     }
 
+    // summarize init
+    log.open( resultsPath + "/LOG.log" );
+    debug_log("[ From Path: " + settings.keyFramesPath + " ]");
+    debug_log("[ To Path: ./results_Bi17" + settings.resultsPathSurfix + " ]" );
+    debug_log("[ Alpha U: " + std::to_string(settings.alpha_u) + " | Alpha V: " + std::to_string(settings.alpha_v) + " ] ");
+    debug_log("[ Patch Width: " + std::to_string(settings.patchWidth) +
+        " | Patch Step: " + std::to_string(settings.patchStep) +
+        " | Patch Random Search: " + std::to_string(settings.patchRandomSearchTimes) + " ]");
+    debug_log("[ Scale: " + std::to_string(settings.scaleTimes) +
+        " | From " + std::to_string(settings.scaleInitW) + "x" + std::to_string(settings.scaleInitH) +
+        " to " + std::to_string(settings.originImgW) + "x" + std::to_string(settings.originImgH) + " ]");
     debug_log("[ Init Success. " + std::to_string(kfIndexs.size()) + " / " + std::to_string(kfTotal) + " Images " + "]");
 
     time_t start, end;
@@ -268,6 +269,13 @@ void TextureMapper::readCameraTraj()
             auto & pose = cameraPoses.emplace_back();
             cv::eigen2cv(param.extrinsic_, pose);
         }
+        auto & intrinsic = settings.trajectory->parameters_[0].intrinsic_;
+        settings.originImgW = intrinsic.width_;
+        settings.originImgH = intrinsic.height_;
+        settings.cameraFx = intrinsic.GetFocalLength().first;
+        settings.cameraFy = intrinsic.GetFocalLength().second;
+        settings.cameraCx = intrinsic.GetPrincipalPoint().first;
+        settings.cameraCy = intrinsic.GetPrincipalPoint().second;
     } else {
         char buf[18];
         std::ifstream matifs;
