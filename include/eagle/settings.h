@@ -15,6 +15,9 @@ public:
     size_t scaleTimes;
     std::vector<size_t> kfIndexs, scaleIters;
 
+    std::vector<cv::String> sourcesOrigin{};
+    std::vector<cv::String> depthFilesOrigin{};
+
     std::string resultsPathSurfix;
     std::string allFramesPath, cameraTxtFile, camTrajNamePattern;
     std::string keyFramesPath, kfCameraTxtFile, originResolution, plyFile;

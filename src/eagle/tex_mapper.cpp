@@ -50,7 +50,11 @@ TextureMapper::~TextureMapper()
     mappings.clear();
 }
 void TextureMapper::mapTextures() {
-    cv::glob(settings.keyFramesPath + "/" + settings.kfRGBMatch, sourcesOrigin, false);
+    if (!settings.sourcesOrigin.empty()) {
+        sourcesOrigin = settings.sourcesOrigin;
+    } else {
+        cv::glob(settings.keyFramesPath + "/" + settings.kfRGBMatch, sourcesOrigin, false);
+    }
     // range of all frames
     kfStart = 0; kfTotal = sourcesOrigin.size();
     // range of valid frames
@@ -61,6 +65,7 @@ void TextureMapper::mapTextures() {
         for( size_t i = kfStart; i < kfTotal; i++ )
             kfIndexs.push_back(i);
     }
+    
     // make the dir to store all files
     processPath = settings.keyFramesPath + "/results_Bi17" + settings.resultsPathSurfix;
     std::filesystem::create_directories(processPath);
@@ -168,12 +173,18 @@ std::string TextureMapper::getImgFilename(size_t img_i, std::string pre, std::st
  * ---------------------------------------------*/
 void TextureMapper::readDepthImgs()
 {
-    char tmp[24];
-    for ( size_t i : kfIndexs ) {
-        sprintf(tmp, (settings.kfDNamePattern).c_str(), i);
-        std::string file = settings.keyFramesPath + "/" + std::string(tmp);
-        if (std::filesystem::exists(file))
-            depthImgs[i] = cv::imread(file, cv::IMREAD_UNCHANGED);
+    if (!settings.depthFilesOrigin.empty()) {
+        char tmp[24];
+        for ( size_t i : kfIndexs ) {
+            sprintf(tmp, (settings.kfDNamePattern).c_str(), i);
+            std::string file = settings.keyFramesPath + "/" + std::string(tmp);
+            if (std::filesystem::exists(file))
+                depthImgs[i] = cv::imread(file, cv::IMREAD_UNCHANGED);
+        }
+    } else {
+        for (size_t i: kfIndexs) {
+            depthImgs[i] = cv::imread(depthFilesOrigin[i], cv::IMREAD_UNCHANGED);
+        }
     }
 }
 float TextureMapper::getDepthRaw(size_t img_i, int x, int y)
