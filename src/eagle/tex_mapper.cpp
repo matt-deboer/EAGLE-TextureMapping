@@ -183,7 +183,7 @@ void TextureMapper::readDepthImgs()
         }
     } else {
         for (size_t i: kfIndexs) {
-            depthImgs[i] = cv::imread(depthFilesOrigin[i], cv::IMREAD_UNCHANGED);
+            depthImgs[i] = cv::imread(settings.depthFilesOrigin[i], cv::IMREAD_UNCHANGED);
         }
     }
 }
