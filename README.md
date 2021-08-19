@@ -1,3 +1,13 @@
+# Texture Mapping for Open3D
+
+This is a modification & refactor of the work done in [EAGLE-TextureMapping](https://github.com/OneEyedEagle/EAGLE-TextureMapping.git),
+specifically:
+1. Removing dependency on Qt creator, and replacing with a CMake build script to allow import as a library
+2. Removed `boost`, `vtk`, `pcl`, `ImageMagick` dependencies
+3. Added `Open3D` dependency
+4. Removing all `system` calls and replacing them with an appropriate library method
+
+
 # EAGLE-TextureMapping
 
 This is an attempt for implementation of the paper "Patch-Based Optimization for Image-Based Texture Mapping".

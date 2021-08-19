@@ -2,6 +2,8 @@
 #define SETTINGS_H
 
 #include <opencv2/opencv.hpp>
+#include <optional>
+#include <open3d/Open3D.h>
 // #include <opencv2/highgui/highgui.hpp>
 
 namespace eagle {
@@ -9,6 +11,10 @@ namespace eagle {
 class Settings
 {
 public:
+    std::optional<open3d::camera::PinholeCameraTrajectory> trajectory;
+    std::optional<std::string>                             trajectory_json_file;
+    
+    
     int originImgW, originImgH, originDepthW, originDepthH, imgW, imgH, scaleInitW, scaleInitH;
     int patchWidth, patchStep, patchSize, frameStart, frameEnd;
     double scaleFactor, alpha_u, alpha_v, lamda, patchRandomSearchTimes;

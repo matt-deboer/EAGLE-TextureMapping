@@ -1,5 +1,6 @@
 #include "eagle/tex_mapper.h"
 #include <filesystem>
+#include <opencv2/core/eigen.hpp>
 
 
 /*----------------------------------------------
@@ -55,10 +56,11 @@ void TextureMapper::mapTextures() {
     } else {
         cv::glob(settings.keyFramesPath + "/" + settings.kfRGBMatch, sourcesOrigin, false);
     }
+
     // range of all frames
     kfStart = 0; kfTotal = sourcesOrigin.size();
     // range of valid frames
-    if( settings.kfIndexs.size() > 0 ) {
+    if (settings.kfIndexs.size() > 0 ) {
         kfIndexs = settings.kfIndexs;
     } else {
         kfIndexs.clear();
@@ -104,10 +106,11 @@ void TextureMapper::mapTextures() {
 
     // read the camera's world positions of keyframes
     debug_log("[ Read Camera Matrixs ] ");
-    if ( std::filesystem::exists(settings.keyFramesPath + "/" + settings.kfCameraTxtFile) )
-        readCameraTraj(settings.keyFramesPath + "/" + settings.kfCameraTxtFile);
-    else
+    if (settings.trajectory || settings.trajectory_json_file || !std::filesystem::exists(settings.keyFramesPath + "/" + settings.kfCameraTxtFile)) {
         readCameraTraj();
+    } else {
+        readCameraTraj(settings.keyFramesPath + "/" + settings.kfCameraTxtFile);
+    }
 
     debug_log("[ Init Success. " + std::to_string(kfIndexs.size()) + " / " + std::to_string(kfTotal) + " Images " + "]");
 
@@ -120,7 +123,7 @@ void TextureMapper::mapTextures() {
     strftime(time_start_str, 32, "%Y.%m.%d %H:%M:%S", time_tmp);
     time(&start);
 
-     if (GENERATE_OBJ_ONLY)
+    if (GENERATE_OBJ_ONLY)
         doOBJGenerationOnly();
     else
         doIterations();
@@ -254,26 +257,39 @@ void TextureMapper::readCameraTraj(std::string camTraj_file)
 }
 void TextureMapper::readCameraTraj()
 {
-    char buf[18];
-    std::ifstream matifs;
-    for( size_t i = 0; i < kfTotal; i++ ){
-        sprintf(buf, (settings.camTrajNamePattern).c_str(), i);
-        std::string name(buf);
-        matifs.open( settings.keyFramesPath + "/" + name );
-        cv::Mat1f mat( cv::Size(4, 4) );
-        // the first, second, third number are T for camera, others are R for camera
-        matifs >> mat.at<float>(0,3) >> mat.at<float>(1,3) >> mat.at<float>(2,3);
-        matifs >> mat.at<float>(0,0) >> mat.at<float>(0,1) >> mat.at<float>(0,2);
-        matifs >> mat.at<float>(1,0) >> mat.at<float>(1,1) >> mat.at<float>(1,2);
-        matifs >> mat.at<float>(2,0) >> mat.at<float>(2,1) >> mat.at<float>(2,2);
-        mat.at<float>(3,0) = 0;
-        mat.at<float>(3,1) = 0;
-        mat.at<float>(3,2) = 0;
-        mat.at<float>(3,3) = 1;
-        if ( ! settings.camTrajFromWorldToCam )
-            mat = mat.inv();
-        cameraPoses.push_back(mat);
-        matifs.close();
+    if (!settings.trajectory && settings.trajectory_json_file) {
+        open3d::camera::PinholeCameraTrajectory traj;
+        open3d::io::ReadIJsonConvertible(*settings.trajectory_json_file, traj);
+        settings.trajectory = traj;
+    }
+
+    if (settings.trajectory) {
+        for (auto & param: settings.trajectory->parameters_) {
+            auto & pose = cameraPoses.emplace_back();
+            cv::eigen2cv(param.extrinsic_, pose);
+        }
+    } else {
+        char buf[18];
+        std::ifstream matifs;
+        for( size_t i = 0; i < kfTotal; i++ ){
+            sprintf(buf, (settings.camTrajNamePattern).c_str(), i);
+            std::string name(buf);
+            matifs.open( settings.keyFramesPath + "/" + name );
+            cv::Mat1f mat( cv::Size(4, 4) );
+            // the first, second, third number are T for camera, others are R for camera
+            matifs >> mat.at<float>(0,3) >> mat.at<float>(1,3) >> mat.at<float>(2,3);
+            matifs >> mat.at<float>(0,0) >> mat.at<float>(0,1) >> mat.at<float>(0,2);
+            matifs >> mat.at<float>(1,0) >> mat.at<float>(1,1) >> mat.at<float>(1,2);
+            matifs >> mat.at<float>(2,0) >> mat.at<float>(2,1) >> mat.at<float>(2,2);
+            mat.at<float>(3,0) = 0;
+            mat.at<float>(3,1) = 0;
+            mat.at<float>(3,2) = 0;
+            mat.at<float>(3,3) = 1;
+            if ( ! settings.camTrajFromWorldToCam )
+                mat = mat.inv();
+            cameraPoses.push_back(mat);
+            matifs.close();
+        }
     }
     /*for ( size_t i = 0; i < cameraPoses.size(); i++)
         std::cout << cameraPoses[i] << std::endl; */
