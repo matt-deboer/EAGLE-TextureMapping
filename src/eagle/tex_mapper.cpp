@@ -268,7 +268,7 @@ void TextureMapper::readCameraTraj()
     if (settings.trajectory) {
         for (auto & param: settings.trajectory->parameters_) {
             auto & pose = cameraPoses.emplace_back();
-            cv::eigen2cv(param.extrinsic_.cast<float>(), pose);
+            cv::eigen2cv(Eigen::Matrix4f{param.extrinsic_.cast<float>()}, pose);
         }
         auto & intrinsic = settings.trajectory->parameters_[0].intrinsic_;
         settings.originImgW = intrinsic.width_;
