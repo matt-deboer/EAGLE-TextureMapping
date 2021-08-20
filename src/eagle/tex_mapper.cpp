@@ -267,7 +267,7 @@ void TextureMapper::readCameraTraj()
     if (settings.trajectory) {
         for (auto & param: settings.trajectory->parameters_) {
             auto & pose = cameraPoses.emplace_back();
-            cv::eigen2cv(param.extrinsic_, pose);
+            cv::eigen2cv(param.extrinsic_.cast<float>(), pose);
         }
         auto & intrinsic = settings.trajectory->parameters_[0].intrinsic_;
         settings.originImgW = intrinsic.width_;
@@ -758,7 +758,7 @@ void TextureMapper::doIterations()
         sourcesImgs.clear();
         for( size_t i : kfIndexs ) {
             std::string filename = std::filesystem::path(sourcesOrigin[i]).filename();
-            sourcesFiles[i] = sourcesPath + "/" + filename;
+            sourcesFiles[i] = sourcesPath + "/" + fmt::format("{:04d}_{}", i, filename);;
             // system( ("convert " + sourcesOrigin[i] + " -resize " + newResolution + "! " + sourcesFiles[i]).c_str() );
             {
                 auto img = cv::imread(sourcesOrigin[i], cv::IMREAD_COLOR);
@@ -788,10 +788,10 @@ void TextureMapper::doIterations()
         if ( init_T_M == true ) {
             for( size_t i : kfIndexs ) {
                 std::string filename = std::filesystem::path(sourcesFiles[i]).filename();
-                targetsFiles[i] = targetsPath + "/" + filename;
+                targetsFiles[i] = targetsPath + "/" + fmt::format("{:04d}_{}", i, filename);;
                 // system( ("cp " + sourcesFiles[i] + " " + targetsFiles[i]).c_str() );
                 std::filesystem::copy_file(sourcesFiles[i], targetsFiles[i]);
-                texturesFiles[i] = texturesPath + "/" + filename;
+                texturesFiles[i] = texturesPath + "/" + fmt::format("{:04d}_{}", i, filename);;
                 // system( ("cp " + sourcesFiles[i] + " " + texturesFiles[i]).c_str() );
                 std::filesystem::copy_file(sourcesFiles[i], texturesFiles[i]);
             }
@@ -908,7 +908,7 @@ void TextureMapper::doOBJGenerationOnly()
     sourcesImgs.clear();
     for( size_t i : kfIndexs ) {
         std::string filename = std::filesystem::path(sourcesOrigin[i]).filename();
-        sourcesFiles[i] = sourcesPath + "/" + filename;
+        sourcesFiles[i] = sourcesPath + "/" + fmt::format("{:04d}_{}", i, filename);;
         // system( ("cp " + sourcesOrigin[i] + " " + sourcesFiles[i]).c_str() );
         std::filesystem::copy_file(sourcesOrigin[i], sourcesFiles[i]);
         sourcesImgs[i] = cv::imread(sourcesFiles[i]);
