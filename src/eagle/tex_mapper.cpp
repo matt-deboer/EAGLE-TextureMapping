@@ -1,6 +1,7 @@
 #include "eagle/tex_mapper.h"
 #include <filesystem>
 #include <opencv2/core/eigen.hpp>
+#include <fmt/format.h>
 
 
 /*----------------------------------------------
