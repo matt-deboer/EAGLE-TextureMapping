@@ -32,7 +32,7 @@ public:
     Settings settings;
     std::ofstream log;
 
-    std::vector<cv::Mat1f> cameraPoses; // cameraPos matrix's array
+    std::vector<cv::Mat> cameraPoses; // cameraPos matrix's array
     open3d::geometry::TriangleMesh mesh;
 
     open3d::geometry::PointCloud cloud_rgb;
